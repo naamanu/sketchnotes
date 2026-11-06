@@ -352,7 +352,7 @@ export default function App() {
       { label: "Rename", value: "rename" },
       { label: "Move to…", value: "move" },
       { label: "Duplicate", value: "dup" },
-      { label: "Delete note", value: "delete", danger: true },
+      { label: "Delete diagram", value: "delete", danger: true },
     ]);
     if (a === "rename") {
       const title = await dialog.prompt("Rename", n.title);
@@ -376,7 +376,7 @@ export default function App() {
   const appMenu = async () => {
     const a = await dialog.pick("SketchNotes", [
       { label: theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode", value: "theme" },
-      { label: "⬆️ Export backup (all notes)", value: "export" },
+      { label: "⬆️ Export backup", value: "export" },
       { label: "⬇️ Import backup", value: "import" },
     ]);
     if (a === "theme") setTheme(theme === "dark" ? "light" : "dark");
