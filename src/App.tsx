@@ -153,6 +153,8 @@ function DiagramEditor({ note, theme, onTouch, apiRef, readOnly }: {
 
   const onApi = (api: any) => {
     apiRef.current = api;
+    // Dev builds only: lets scripted demos (video/scripts/record.mjs) map scene ↔ screen coordinates.
+    if (import.meta.env.DEV) (window as any).__excalidraw = api;
     if (!api || !isPdf) return;
     // PDFs open on page 1 with the pen ready.
     setTimeout(() => {

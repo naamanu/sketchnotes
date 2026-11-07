@@ -1,5 +1,13 @@
 # SketchNotes
 
+<p align="center">
+  <a href="docs/media/sketchnotes-tour.mp4">
+    <img src="docs/media/sketchnotes-tour-preview.gif" alt="SketchNotes tour: sketching a system-design diagram and annotating a PDF" width="820">
+  </a>
+  <br>
+  <a href="docs/media/sketchnotes-tour.mp4"><b>▶ Watch the 75-second tour (MP4)</b></a>
+</p>
+
 An offline, Excalidraw-style diagramming and PDF-annotation app for Android tablets. It's built for system-design interview practice: sketch boxes and arrows with a pen, read and mark up PDFs (papers, books, notes), keep everything in folders, and turn your handwriting into clean text in the Excalidraw font.
 
 SketchNotes wraps the open-source [`@excalidraw/excalidraw`](https://www.npmjs.com/package/@excalidraw/excalidraw) editor in a small React app. [Capacitor](https://capacitorjs.com/) packages it as a native Android APK. Everything stays on the device, and nothing needs an account or a server.
@@ -105,7 +113,8 @@ android/
   app/src/main/java/dev/nana/sketchnotes/
     MainActivity.java   Registers the local Ink plugin
     InkPlugin.java      Capacitor plugin wrapping ML Kit Digital Ink Recognition
-docs/              Detailed documentation
+docs/              Detailed documentation, screenshots and the tour video
+video/             Remotion project that records and renders the tour video (see video/README.md)
 ```
 
 ## License and credits

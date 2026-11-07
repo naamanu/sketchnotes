@@ -1,0 +1,28 @@
+{
+  "name": "sketchnotes-video",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "record": "node scripts/record.mjs",
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts SketchNotesTour out/sketchnotes-tour.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.541",
+    "@remotion/fonts": "^4.0.541",
+    "@remotion/transitions": "^4.0.541",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.541"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "pdf-lib": "^1.17.1",
+    "puppeteer-core": "^25.16.0",
+    "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}

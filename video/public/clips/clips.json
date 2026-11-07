@@ -1,0 +1,22 @@
+[
+  {
+    "id": "01-folders",
+    "seconds": 10.1
+  },
+  {
+    "id": "02-draw",
+    "seconds": 43.433333
+  },
+  {
+    "id": "03-import-pdf",
+    "seconds": 10.333333
+  },
+  {
+    "id": "04-annotate",
+    "seconds": 24.8
+  },
+  {
+    "id": "05-share-search",
+    "seconds": 12
+  }
+]

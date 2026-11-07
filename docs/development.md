@@ -77,7 +77,7 @@ On fish: `set -Ux ANDROID_HOME ~/Android/Sdk; fish_add_path ~/Android/Sdk/platfo
 
    ```bash
    ~/Android/Sdk/platform-tools/adb devices -l
-   # HVA71BAH   device usb:1-4.3 product:… model:…
+   # R52XXXXXXXX   device usb:1-4 product:… model:…
    ```
 
    `unauthorized` means you haven't accepted the prompt on the tablet yet. If nothing is listed, see [troubleshooting](troubleshooting.md#adb-doesnt-see-the-tablet).
