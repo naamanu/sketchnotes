@@ -71,7 +71,9 @@ export function bbox(strokes): { minX, minY, maxX, maxY };
 export function groupLines<T extends { strokes: Stroke[] }>(items: T[]): T[][];
 ```
 
-`recognize` calls `prepareInk()` first, so the first conversion triggers the model download transparently. While that runs, the UI shows *"Converting handwriting…"*.
+**Launch-time warm-up.** `main.tsx` calls `warmUpInk()` at startup, which runs `prepareInk()` in the background so the model is usually already on the device before you first write, even if you're offline by then. If that attempt fails (no connection), it retries on the window's `online` event. Failures are silent.
+
+`recognize` also calls `prepareInk()` first, so if the warm-up hasn't finished, the first conversion waits for (or retries) the download. While that runs, the UI shows *"Converting handwriting…"*.
 
 ## When conversion runs (`DiagramEditor`)
 
