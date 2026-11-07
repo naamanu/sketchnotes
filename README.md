@@ -2,38 +2,62 @@
 
 An offline, Excalidraw-style diagramming and PDF-annotation app for Android tablets. It's built for system-design interview practice: sketch boxes and arrows with a pen, read and mark up PDFs (papers, books, notes), keep everything in folders, and turn your handwriting into clean text in the Excalidraw font.
 
-<p align="center">
-  <img src="docs/screenshots/diagram-landscape.png" alt="A system-design diagram open beside the folder sidebar" width="860">
-</p>
-
 SketchNotes wraps the open-source [`@excalidraw/excalidraw`](https://www.npmjs.com/package/@excalidraw/excalidraw) editor in a small React app. [Capacitor](https://capacitorjs.com/) packages it as a native Android APK. Everything stays on the device, and nothing needs an account or a server.
 
 ## Features
 
-| | |
-|---|---|
-| **Excalidraw canvas** | The full Excalidraw editor: rectangles, diamonds, ellipses, arrows, lines, pencil, text, images, eraser, shape library, undo/redo, grid, dark mode. |
-| **PDF reading & notes** | Import a PDF and its pages appear on the canvas. Write, highlight, draw and type on them with every Excalidraw tool. Jump to a page, switch to read-only mode, and share a flattened, annotated PDF. |
-| **Folders** | Folders can go inside other folders. Create, rename, move and delete folders and diagrams; search by title. |
-| **Handwriting → text** | Write with the pencil tool and, after a short pause, the ink becomes Excalifont text. Writing inside an empty box becomes the box's label. Recognition runs on the device (Google ML Kit Digital Ink). |
-| **Excalifont by default** | Typed text always starts in the hand-drawn Excalidraw font. |
-| **Pen-friendly** | Excalidraw's pen mode with palm rejection: the pen draws, fingers pan and zoom. |
-| **Autosave** | Every change is saved locally (IndexedDB) within about half a second, and again when the app goes to the background. |
-| **Share PNG / PDF** | Export a diagram as a PNG, or a PDF with your notes burned in, through the Android share sheet. |
-| **Backups** | Export and import a single JSON file containing every folder, diagram and PDF. |
-| **Offline** | Fonts and code are bundled into the APK. Only the one-time handwriting model download (~20 MB) needs internet. |
+- **Excalidraw canvas:** the full editor, with shapes, arrows, pencil, text, images, eraser, shape library, undo/redo, grid and dark mode.
+- **PDF reading & notes:** import a PDF and write, highlight, draw and type on its pages; export a flattened, annotated copy.
+- **Folders:** folders can go inside other folders, with search, rename, move, duplicate and delete.
+- **Handwriting → text:** pen writing turns into Excalidraw-font text. Write inside a box and it becomes the box's label. Recognition runs on the device with Google ML Kit.
+- **Pen-friendly:** palm rejection, so the pen draws and fingers pan and zoom.
+- **Autosave, backups, offline:** everything is stored on the tablet and saved within about half a second. Export a single JSON backup. No account or server.
 
-## Screenshots
+## A quick tour
 
-| Annotating a PDF | Portrait (tablet) |
-|---|---|
-| <img src="docs/screenshots/pdf-annotate.png" alt="PDF page with handwritten notes, a highlight and a circled phrase" width="380"> | <img src="docs/screenshots/diagram-portrait.png" alt="URL shortener diagram on a portrait tablet screen" width="380"> |
+### Diagrams for system-design practice
 
-| Dark mode | Folders & item menu | Go to page |
-|---|---|---|
-| <img src="docs/screenshots/dark-mode.png" alt="The app in dark mode" width="280"> | <img src="docs/screenshots/folders.png" alt="Folder tree with a diagram's menu open" width="280"> | <img src="docs/screenshots/pdf-pages.png" alt="Page picker for a PDF" width="280"> |
+Sketch an architecture with Excalidraw's hand-drawn shapes and arrows. Labels and typed text use **Excalifont**. Keep each design in a folder, and share it as a PNG from the top bar.
 
-<sub>Captured from the app's web build at the tablet's resolution (1920×1200 / 1200×1920) with demo content. On the device the UI is identical.</sub>
+<p align="center">
+  <img src="docs/screenshots/diagram-landscape.png" alt="URL shortener diagram open beside the folder sidebar" width="820">
+</p>
+
+### Read and annotate PDFs
+
+Import a paper or book with **+ PDF**. Its pages appear on the canvas, locked in place. Write in the margins, highlight, circle and type notes, then jump between pages with **Pages**. Switch to **📖 Reading** to scroll without marking the page, or tap **Share PDF** to send a copy with your notes drawn in.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/pdf-annotate.png" alt="PDF page with handwritten notes, a highlight and a circled phrase"></td>
+    <td width="50%" valign="top">
+      <p><b>On the page:</b> a highlight, a circled phrase, a red underline, notes in Excalifont, and a sketch of the hash ring. All of it was made with the normal canvas tools.</p>
+      <p><b>Go to page:</b></p>
+      <img src="docs/screenshots/pdf-pages.png" alt="Page picker for a PDF">
+    </td>
+  </tr>
+</table>
+
+### Folders that fit how you study
+
+Folders can go inside other folders. Every folder and item has a **⋯** menu for new items, rename, move, duplicate and delete. The search box filters by title across all folders.
+
+<p align="center">
+  <img src="docs/screenshots/folders.png" alt="Folder tree with a diagram's menu open" width="820">
+</p>
+
+### Portrait or landscape, light or dark
+
+In portrait the sidebar slides away so the canvas gets the full screen. Dark mode switches both the app and the canvas.
+
+<table>
+  <tr>
+    <td width="38%"><img src="docs/screenshots/diagram-portrait.png" alt="URL shortener diagram on a portrait tablet screen"></td>
+    <td width="62%"><img src="docs/screenshots/dark-mode.png" alt="The app in dark mode"></td>
+  </tr>
+</table>
+
+<sub>Screenshots were captured from the app's web build at the tablet's resolution (1920×1200 / 1200×1920) using demo content. The UI is the same on the device.</sub>
 
 ## Quick start
 
