@@ -7,7 +7,8 @@ Where your diagrams live, what the stored data looks like, and how backups work.
 | What | Where | In backups? |
 |---|---|---|
 | Folders + diagram list (the *index*) | IndexedDB, database `keyval-store`, store `keyval`, key `index` | ✅ |
-| Each diagram's scene | Same store, key `content:<diagramId>` | ✅ |
+| Each diagram's / PDF's scene | Same store, key `content:<id>` | ✅ |
+| Images: PDF pages and pasted pictures | Same store, key `file:<id>:<fileId>`, one per image | ✅ (inlined into each item's `files`) |
 | Theme, expanded folders, open diagram, auto-convert toggle | WebView `localStorage` (`theme`, `expanded`, `selected`, `inkToText`) | ❌ (per device) |
 | Handwriting model | ML Kit's own app-private storage | ❌ (re-downloads) |
 
@@ -40,7 +41,8 @@ type NoteMeta = {          // a diagram's metadata
   id: string;
   title: string;
   folderId: string | null; // null = top level
-  kind: "text" | "diagram";// new items are always "diagram"; "text" = legacy (see Migrations)
+  kind: "text" | "diagram" | "pdf"; // "text" = legacy (see Migrations)
+  pageCount?: number;      // PDFs only
   createdAt: number;
   updatedAt: number;       // bumped only when elements actually change
 };
@@ -55,8 +57,17 @@ type DiagramContent = {
     scrollX?: number; scrollY?: number;
     zoom?: { value: number };
   };
-  files: Record<string, BinaryFileData>; // embedded images (data URLs), keyed by fileId
-};
+  files: Record<string, BinaryFileData>; // always {} when stored; images live under file:<id>:<fileId>
+};                                       // (inline files are still accepted, e.g. from backups)
+
+// file:<noteId>:<fileId>  →  BinaryFileData { id, mimeType, dataURL, created }
+```
+
+A **PDF** is a `DiagramContent` whose page images are locked `image` elements carrying
+`customData: { pdfPage: number, pdfWidth: number, pdfHeight: number }` (sizes in PDF points).
+Its page JPEGs are ordinary files in the file store. The original PDF file isn't kept.
+
+```ts
 
 type NoteContent = string | DiagramContent; // string = legacy text note
 ```
@@ -66,11 +77,13 @@ type NoteContent = string | DiagramContent; // string = legacy text note
 ### Write behaviour
 
 - **Index:** written immediately on every structural change (create, rename, move, delete, title edit, `updatedAt` bump).
+- **Images:** written once, the first time a save sees an image id that isn't stored yet. A PDF's pages are written at import.
 - **Content:** written by a 500 ms debounced save on every Excalidraw `onChange`, and **flushed** when you switch diagrams (unmount) or the app goes to the background (`visibilitychange → hidden`). Force-stopping the app within 500 ms of an edit can lose that last edit.
 
 ### Deletes
 
-- Deleting a diagram removes its `index` entry and its `content:<id>` key.
+- Deleting a diagram or PDF removes its `index` entry, its `content:<id>` key and all its `file:<id>:*` keys.
+- **Duplicate** copies the content and all the image keys to the new id.
 - Deleting a folder removes the folder, **all subfolders** (`descendantFolderIds`), and **all diagrams in any of them**, along with their content.
 
 ## Backup file format
@@ -92,7 +105,9 @@ type NoteContent = string | DiagramContent; // string = legacy text note
 }
 ```
 
-It's plain JSON. Embedded images are base64 data URLs inside `files`, so diagrams with photos can make the file large.
+It's plain JSON. Images, including every PDF page, are inlined as base64 data URLs into each item's `files`, so backups containing PDFs are large (roughly 1.4× the stored page images).
+
+When a backup is imported, images stay inline in the content until that item is opened and saved once. At that point they move into the file store automatically.
 
 ### Import semantics
 
@@ -113,7 +128,7 @@ So importing the same backup twice is harmless, and importing an old backup **ov
 
 | Stored value | Becomes |
 |---|---|
-| `DiagramContent` object | used as is |
+| `DiagramContent` object | used as is; inline `files` are moved to the file store on the next save |
 | non-empty `string` (legacy text note from early builds) | a diagram with **one Excalifont text element** (size 20) at (0, 0) holding the text |
 | empty string / missing | an empty diagram |
 

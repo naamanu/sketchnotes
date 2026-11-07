@@ -6,8 +6,10 @@ This guide covers everything you can do in SketchNotes, screen by screen.
 - [Folders](#folders)
 - [Diagrams](#diagrams)
 - [Drawing on the canvas](#drawing-on-the-canvas)
+- [Reading and annotating PDFs](#reading-and-annotating-pdfs)
 - [Handwriting → text](#handwriting--text)
 - [Sharing a diagram as PNG](#sharing-a-diagram-as-png)
+- [Sharing an annotated PDF](#sharing-an-annotated-pdf)
 - [Settings, backups and dark mode](#settings-backups-and-dark-mode)
 - [Tips for system-design interviews](#tips-for-system-design-interviews)
 
@@ -18,13 +20,13 @@ This guide covers everything you can do in SketchNotes, screen by screen.
 ```
 ┌──────────────────────┬──────────────────────────────────────────────┐
 │ SketchNotes      ⚙︎  │ ☰  Diagram title            path  [Share PNG]│  ← top bar
-│ [Search diagrams…]   ├──────────────────────────────────────────────┤
-│ [+ Diagram][+ Folder]│                                              │
+│ [Search…]            ├──────────────────────────────────────────────┤
+│[+Diagram][+PDF][+Fol]│                                              │
 │ Adding to: Top level │            Excalidraw canvas                 │
 │ ▾ 📁 System Design ⋯ │                                              │
 │     ✏️ URL shortener⋯│                                              │
 │   ▸ 📁 Practice    ⋯ │                                              │
-│ ✏️ Scratch         ⋯ │                    [✍️→Aa On]                │  ← handwriting toggle
+│ 📄 Dynamo paper    ⋯ │                    [✍️→Aa On]                │  ← handwriting toggle
 └──────────────────────┴──────────────────────────────────────────────┘
         sidebar                         editor
 ```
@@ -32,7 +34,7 @@ This guide covers everything you can do in SketchNotes, screen by screen.
 - **Sidebar:** your folders and diagrams. Tap **☰** in the top bar to show or hide it.
   - **Landscape or wide screens (900 CSS px and up):** the sidebar sits beside the canvas.
   - **Portrait or narrow screens:** it slides over the canvas. Tap the dimmed area or pick a diagram to close it. If a diagram was open when you last left the app, it opens straight to the canvas.
-- **Top bar:** the open diagram's title, which you can edit by tapping it, and its folder path (hidden on narrow screens). **Share PNG** is there too.
+- **Top bar:** the open item's title, which you can edit by tapping it, and its folder path (hidden on narrow screens). Diagrams have **Share PNG**. PDFs have **Pages**, **✏️ Annotating / 📖 Reading** and **Share PDF**.
 - **Editor:** the Excalidraw canvas for the open diagram.
 
 The app remembers which diagram was open, which folders were expanded, and your theme between launches.
@@ -56,7 +58,7 @@ The line under the buttons shows where **+ Diagram** and **+ Folder** will creat
 
 ### Sorting and search
 
-Folders are sorted alphabetically, and diagrams by most recently edited. Typing in **Search diagrams…** filters by title (case-insensitive) and expands every folder so matches are visible.
+Folders are sorted alphabetically, and diagrams by most recently edited. Typing in **Search…** filters diagrams and PDFs by title (case-insensitive) and expands every folder so matches are visible.
 
 ## Diagrams
 
@@ -95,6 +97,48 @@ To use your finger for drawing again, turn pen mode off in Excalidraw's menu (�
 - **Canvas menu (☰ top-left):** background colour, clear canvas, theme, grid, zen mode, view mode, help. (Excalidraw's own *open / save / export image* entries are hidden because they don't work inside an Android app. Use **Share PNG** and **Backups** instead.)
 
 New text always starts in **Excalifont**, the hand-drawn Excalidraw font. You can still change the font of selected text in the properties panel.
+
+## Reading and annotating PDFs
+
+A PDF opens on the same Excalidraw canvas as a diagram, with its pages stacked top to bottom. Everything you can do on a diagram works on top of the pages.
+
+![A PDF page with handwritten notes, a highlight and a text note](screenshots/pdf-annotate.png)
+
+### Importing
+
+1. Tap **+ PDF** in the sidebar, or folder **⋯** → **📄 Import PDF here**.
+2. Pick a file in the Android file picker (Downloads, Drive, Files and so on).
+3. Confirm the name, which defaults to the file name.
+4. Wait while *"Preparing pages… n / total"* runs. Each page is turned into an image once, at about 150 dpi. A 30-page paper takes a few seconds.
+
+The PDF appears in the sidebar with a 📄 icon and opens on page 1, fitted to the screen, with the **pencil already selected**.
+
+### Reading
+
+- **Scroll:** drag with one finger. Once you've used the pen, a finger always pans; otherwise, pick the hand tool or switch to reading mode.
+- **Zoom:** pinch, or use **−** / **+** at the bottom-left.
+- **Pages (n):** tap it in the top bar and pick a page to jump there.
+- **✏️ Annotating ↔ 📖 Reading:** reading mode is Excalidraw's view mode. Touches only scroll and zoom, so you can't mark the page by accident. Tap again to go back to annotating. Each PDF opens in annotating mode.
+- The app remembers where you were in each PDF.
+
+### Taking notes
+
+The pages are **locked**: they can't be selected, moved or erased. So you can scribble freely and erase only your own notes.
+
+| To… | Use |
+|---|---|
+| Write by hand | **Pencil** (selected when the PDF opens). |
+| Highlight | **Pencil** with a thick stroke, a yellow or green stroke colour, and **opacity** around 30–40 %. Or draw a **rectangle** with a solid fill colour at low opacity over a passage. |
+| Type a note | **Text** tool (Excalifont). |
+| Box, circle or underline something | Rectangle, ellipse, line and arrow tools. |
+| Remove a note | **Eraser**, or select it and delete. The page underneath is untouched. |
+| Write in the margins | Just write. The canvas carries on past the page edges, but see the export note below. |
+
+**Handwriting → text** works here too, but for PDFs it's **off by default**, since notes on a page are usually meant to stay as ink. The **✍️→Aa** toggle at the bottom is remembered separately for PDFs and diagrams.
+
+### Sizes and storage
+
+Each page is stored as a JPEG of about 150–400 KB, so a 100-page book adds around 20–40 MB to the app's storage. This is saved once at import; later autosaves only write your notes. Very long PDFs (hundreds of pages) work, but take longer to import and to back up.
 
 ## Handwriting → text
 
@@ -145,6 +189,13 @@ More detail on how this works: [handwriting.md](handwriting.md).
 
 Tap **Share PNG** in the top bar. The app renders the whole diagram with a 24 px margin and a background (dark if you're in dark mode). The Android share sheet then opens, so you can send it to Gmail, Drive, Messages, Files and so on. The file is named after the diagram title.
 
+## Sharing an annotated PDF
+
+In a PDF, tap **Share PDF**. Each page is flattened together with the notes drawn on it into a new PDF, at the original page sizes and named *"Title (annotated).pdf"*. The share sheet then opens. A progress label shows *"Exporting page n / total…"*.
+
+- Notes are included on any page they **overlap**, and are clipped to that page's edges. Anything drawn entirely in the gap between pages or off to the side is left out.
+- Pages are exported as images, so the text in the exported PDF can't be selected or searched. Your original PDF file is not modified.
+
 ## Settings, backups and dark mode
 
 Tap **⚙︎** at the top of the sidebar.
@@ -152,13 +203,14 @@ Tap **⚙︎** at the top of the sidebar.
 | Option | What it does |
 |---|---|
 | **🌙 Dark mode / ☀️ Light mode** | Switches the app and canvas theme. The first launch follows the system setting; after that your choice is remembered. |
-| **⬆️ Export backup** | Packs every folder and diagram, including images pasted into diagrams, into one `sketchnotes-backup-YYYY-MM-DD-HH-MM.json` file and opens the share sheet. Save it to Drive, Files or email. |
+| **⬆️ Export backup** | Packs every folder, diagram and PDF (page images and notes included), plus images pasted into diagrams, into one `sketchnotes-backup-YYYY-MM-DD-HH-MM.json` file and opens the share sheet. Save it to Drive, Files or email. |
 | **⬇️ Import backup** | Pick a backup `.json` file. Its folders and diagrams are **merged** into the current data. Items with the same internal id are overwritten by the backup's version, and everything else is kept. |
 
 > Your diagrams live **only on this tablet** until you export a backup. Uninstalling the app or using *Clear storage* in Android settings deletes them. See [data-and-backups.md](data-and-backups.md).
 
 ## Tips for system-design interviews
 
+- Import papers you're studying (Dynamo, Bigtable, Raft, Kafka…) as PDFs and annotate them next to your diagrams.
 - Make a **System Design** folder, with subfolders per topic (*Storage*, *Messaging*, *Case studies*).
 - Build a **template** diagram with the boxes you always draw (client, load balancer, API service, cache, DB, queue). **Duplicate** it for each new problem.
 - Add frequently used components to the **Library** so you can drag them in.

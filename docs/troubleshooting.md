@@ -3,6 +3,7 @@
 - [Build](#build)
 - [Install / adb](#install--adb)
 - [Running the app](#running-the-app)
+- [PDFs](#pdfs)
 - [Handwriting recognition](#handwriting-recognition)
 - [Data](#data)
 
@@ -95,6 +96,27 @@ These open the Android share sheet. Check the tablet: the sheet may be behind a 
 
 ### Excalidraw's own "Export image" / "Save to…" menu is missing
 That's intentional. Those use browser download APIs that Android WebView doesn't support. Use **Share PNG** and **⚙︎ → Export backup**.
+
+## PDFs
+
+### "Couldn't open that PDF: …"
+- **`Invalid PDF structure` / `InvalidPDFException`:** the file is corrupt, or isn't really a PDF.
+- **`PasswordException`:** password-protected PDFs aren't supported yet. Remove the password with another tool first.
+
+### Importing a big PDF is slow or the app restarts
+Every page is rendered and stored at import. Hundreds of pages on a 4 GB tablet can run out of memory. Split the PDF, or import only the chapters you need.
+
+### Pages look blurry when zoomed in
+Pages are stored at about 150 dpi (`RENDER_WIDTH` in `src/pdf.ts`). Raise it for sharper zoom, at the cost of bigger files and more memory. It only affects PDFs imported after the change.
+
+### My margin notes are missing from the shared PDF
+Only notes that overlap a page are exported, clipped to that page. Move notes onto the page, or write in its white margins.
+
+### I can't select or erase the PDF page
+That's intentional: pages are locked so they can't be damaged while you annotate. Delete the whole PDF from the sidebar if you want it gone.
+
+### A finger draws on the PDF instead of scrolling
+Use the pen once (pen mode turns on automatically), switch to **📖 Reading**, or pick the hand tool.
 
 ## Handwriting recognition
 

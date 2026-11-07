@@ -137,6 +137,7 @@ Key config files:
 | File | Purpose |
 |---|---|
 | `capacitor.config.json` | `appId` `dev.nana.sketchnotes`, `appName` SketchNotes, `webDir` `dist`. |
+| `src/pdf.ts` | Imports pdf.js's worker with `?url` so Vite bundles it into `dist/assets`, which keeps PDF import offline. `src/env.d.ts` references `vite/client` for that import's types. |
 | `vite.config.ts` | React plugin, plus `process.env.IS_PREACT = "false"`, which Excalidraw expects to be defined. |
 | `index.html` | Sets `window.EXCALIDRAW_ASSET_PATH = "/"` so Excalidraw loads fonts from the bundled `/fonts/…` instead of a CDN. |
 | `android/variables.gradle` | `minSdkVersion 24`, `compileSdkVersion`/`targetSdkVersion 36`, AndroidX versions. |
@@ -244,6 +245,7 @@ Then build with `npm run build && npx cap sync android && (cd android && ./gradl
 
 - **Excalidraw:** after `npm i @excalidraw/excalidraw@<ver>`, re-run `npm install` so `postinstall` copies the matching fonts. Check that `FONT_FAMILY`, `convertToExcalidrawElements`, `CaptureUpdateAction` and `newElementWith` are still exported (used by `src/diagramInk.ts`).
 - **Capacitor:** keep `@capacitor/core`, `@capacitor/android`, `@capacitor/cli` and the plugins on the same major. Run `npx cap sync android` afterwards. Major upgrades may change `android/variables.gradle` and the Gradle wrapper; follow Capacitor's upgrade guide.
+- **pdf.js / pdf-lib:** `src/pdf.ts` uses the **legacy** build (`pdfjs-dist/legacy/build/pdf.mjs`) for older WebViews. In pdf.js 6, `getDocument()` no longer takes `isEvalSupported`, and cleanup is `loadingTask.destroy()`.
 - **ML Kit:** bump the version in `android/app/build.gradle`. Note that `RecognitionCandidate` lives in the transitive `digital-ink-common` artifact (`com.google.mlkit.vision.digitalink.common`), not the `recognition` package.
 
 ## 10. Conventions
