@@ -20,6 +20,25 @@ export function prepareInk(): Promise<void> {
   return preparing;
 }
 
+/**
+ * Starts the model download in the background at launch, so handwriting works later even
+ * if the tablet is offline by then. If it fails (e.g. no connection), it tries again the
+ * next time the device comes back online. Failures are silent; recognize() still retries.
+ */
+export function warmUpInk(): void {
+  if (!inkAvailable) return;
+  let done = false;
+  const attempt = () => {
+    if (done) return;
+    prepareInk().then(() => {
+      done = true;
+      window.removeEventListener("online", attempt);
+    }, () => {});
+  };
+  window.addEventListener("online", attempt);
+  attempt();
+}
+
 export async function recognize(strokes: Stroke[], opts: { width?: number; height?: number; preContext?: string } = {}) {
   await prepareInk();
   const { candidates } = await Ink.recognize({ strokes, ...opts });
