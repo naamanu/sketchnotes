@@ -3,12 +3,13 @@ import { Excalidraw, FONT_FAMILY, convertToExcalidrawElements, exportToBlob } fr
 import "@excalidraw/excalidraw/index.css";
 import {
   Backup, DiagramContent, NoteContent, Folder, Index, NoteMeta,
-  deleteContent, descendantFolderIds, loadContent, loadIndex, makeBackup,
-  restoreBackup, saveContent, saveIndex, uid,
+  copyNoteFiles, deleteNote, descendantFolderIds, loadContent, loadFiles, loadIndex, makeBackup,
+  referencedFileIds, restoreBackup, saveContent, saveFiles, saveIndex, uid,
 } from "./store";
 import { shareFile } from "./share";
 import { inkAvailable } from "./ink";
 import { convertInkToText } from "./diagramInk";
+import { exportAnnotatedPdf, importPdf, pagesOf } from "./pdf";
 
 type Theme = "light" | "dark";
 
@@ -107,11 +108,18 @@ function toDiagram(c: NoteContent | undefined): DiagramContent {
 
 const sceneVersion = (els: readonly any[]) => els.reduce((s, e) => s + (e.version ?? 0), els.length);
 
-function DiagramEditor({ note, theme, onTouch, apiRef }: {
-  note: NoteMeta; theme: Theme; onTouch: () => void; apiRef: React.MutableRefObject<any>;
+function DiagramEditor({ note, theme, onTouch, apiRef, readOnly }: {
+  note: NoteMeta; theme: Theme; onTouch: () => void; apiRef: React.MutableRefObject<any>; readOnly: boolean;
 }) {
+  const isPdf = note.kind === "pdf";
+  // Handwriting→text is remembered separately for PDFs (default off: notes on a page are usually ink).
+  const inkKey = isPdf ? "inkToText:pdf" : "inkToText";
   const [initial, setInitial] = useState<DiagramContent | null>(null);
-  const [autoText, setAutoText] = useState(() => inkAvailable && localStorage.getItem("inkToText") !== "0");
+  const [autoText, setAutoText] = useState(() => {
+    if (!inkAvailable) return false;
+    const saved = localStorage.getItem(inkKey);
+    return saved === null ? !isPdf : saved === "1";
+  });
   const [selectedInk, setSelectedInk] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const lastVersion = useRef(0);
@@ -120,18 +128,42 @@ function DiagramEditor({ note, theme, onTouch, apiRef }: {
   const inkTimer = useRef<number | undefined>(undefined);
   const autoRef = useRef(autoText);
   autoRef.current = autoText;
+  const storedFiles = useRef(new Set<string>()); // image ids already in the file store
+  const firstOpen = useRef(false);
 
   useEffect(() => {
-    loadContent(note.id).then((c) => {
+    loadContent(note.id).then(async (c) => {
       const d = toDiagram(c);
+      // Images normally live in the file store; older data/backups may carry them inline.
+      const missing = referencedFileIds(d.elements).filter((id) => !(id in (d.files ?? {})));
+      const fromStore = await loadFiles(note.id, missing);
+      storedFiles.current = new Set(Object.keys(fromStore));
       lastVersion.current = sceneVersion(d.elements);
       knownInk.current = new Set(d.elements.filter((e) => e.type === "freedraw").map((e) => e.id));
-      setInitial(d);
+      firstOpen.current = d.appState?.scrollX === undefined;
+      setInitial({ ...d, files: { ...d.files, ...fromStore } });
     });
     return () => clearTimeout(inkTimer.current);
   }, [note.id]);
-  useEffect(() => { localStorage.setItem("inkToText", autoText ? "1" : "0"); }, [autoText]);
-  const save = useDebounced<DiagramContent>((d) => saveContent(note.id, d), 500);
+  useEffect(() => { localStorage.setItem(inkKey, autoText ? "1" : "0"); }, [autoText]);
+  const save = useDebounced<DiagramContent>(async (d) => {
+    await saveFiles(note.id, d.files, storedFiles.current);
+    await saveContent(note.id, { ...d, files: {} });
+  }, 500);
+
+  const onApi = (api: any) => {
+    apiRef.current = api;
+    if (!api || !isPdf) return;
+    // PDFs open on page 1 with the pen ready.
+    setTimeout(() => {
+      if (firstOpen.current) {
+        const [p1] = pagesOf(api.getSceneElements());
+        if (p1) api.scrollToContent(p1, { fitToViewport: true, viewportZoomFactor: 0.95 });
+        firstOpen.current = false;
+      }
+      api.setActiveTool({ type: "freedraw" });
+    }, 50);
+  };
 
   const convert = async (ids: Set<string>) => {
     if (!apiRef.current || !ids.size) return;
@@ -180,7 +212,8 @@ function DiagramEditor({ note, theme, onTouch, apiRef }: {
   return (
     <div className="canvas-wrap">
       <Excalidraw
-        excalidrawAPI={(api) => (apiRef.current = api)}
+        excalidrawAPI={onApi}
+        viewModeEnabled={readOnly}
         initialData={{
           ...initial,
           appState: { ...initial.appState, collaborators: new Map(), currentItemFontFamily: FONT_FAMILY.Excalifont },
@@ -189,7 +222,7 @@ function DiagramEditor({ note, theme, onTouch, apiRef }: {
         UIOptions={{ canvasActions: { loadScene: false, saveToActiveFile: false, export: false, saveAsImage: false } }}
         onChange={onChange}
       />
-      {inkAvailable && (
+      {inkAvailable && !readOnly && (
         <div className="ink-bar">
           {status && <span className="status">{status}</span>}
           {selectedInk.length > 0 && (
@@ -240,7 +273,7 @@ function Tree(props: {
       {notes.map((n) => (
         <div key={n.id} className={"item" + (props.selectedNote === n.id ? " selected" : "")} style={pad}>
           <button className="item-main" onClick={() => props.onNote(n)}>
-            <span className="chev" />✏️ {n.title || "Untitled"}
+            <span className="chev" />{n.kind === "pdf" ? "📄" : "✏️"} {n.title || "Untitled"}
           </button>
           <button className="more" onClick={() => props.onNoteMenu(n)} aria-label="Note actions">⋯</button>
         </div>
@@ -262,6 +295,10 @@ export default function App() {
   const dialog = useDialog();
   const apiRef = useRef<any>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
+  const pdfFolder = useRef<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [readOnly, setReadOnly] = useState(false);
 
   useEffect(() => { loadIndex().then(setIndex); }, []);
   useEffect(() => { localStorage.setItem("theme", theme); document.documentElement.dataset.theme = theme; }, [theme]);
@@ -288,7 +325,7 @@ export default function App() {
     return parts.join(" / ");
   };
 
-  const openNote = (n: NoteMeta) => { setSelectedId(n.id); setActiveFolder(n.folderId); if (narrow()) setSidebar(false); };
+  const openNote = (n: NoteMeta) => { setSelectedId(n.id); setReadOnly(false); setActiveFolder(n.folderId); if (narrow()) setSidebar(false); };
 
   const createNote = async (folderId = activeFolder) => {
     const title = await dialog.prompt("New diagram", "Untitled diagram");
@@ -299,6 +336,31 @@ export default function App() {
     update((i) => ({ ...i, notes: [...i.notes, n] }));
     if (folderId) setExpanded((s) => new Set(s).add(folderId));
     openNote(n);
+  };
+
+  const choosePdf = (folderId = activeFolder) => { pdfFolder.current = folderId; pdfRef.current?.click(); };
+
+  const onPdfChosen = async (file: File) => {
+    const folderId = pdfFolder.current;
+    const title = await dialog.prompt("Import PDF", file.name.replace(/\.pdf$/i, ""));
+    if (!title) return;
+    try {
+      setBusy("Opening PDF…");
+      const { elements, files, appState, pageCount } = await importPdf(await file.arrayBuffer(),
+        (done, total) => setBusy(`Preparing pages… ${done} / ${total}`));
+      const now = Date.now();
+      const n: NoteMeta = { id: uid(), title, folderId, kind: "pdf", pageCount, createdAt: now, updatedAt: now };
+      setBusy("Saving…");
+      await saveFiles(n.id, files, new Set());
+      await saveContent(n.id, { elements, appState, files: {} });
+      update((i) => ({ ...i, notes: [...i.notes, n] }));
+      if (folderId) setExpanded((s) => new Set(s).add(folderId));
+      openNote(n);
+    } catch (e) {
+      await dialog.pick(`Couldn't open that PDF: ${(e as Error).message}`, []);
+    } finally {
+      setBusy(null);
+    }
   };
 
   const createFolder = async (parentId = activeFolder) => {
@@ -323,12 +385,14 @@ export default function App() {
     setActiveFolder(f.id);
     const a = await dialog.pick(f.name, [
       { label: "✏️ New diagram here", value: "diagram" },
+      { label: "📄 Import PDF here", value: "pdf" },
       { label: "📁 New subfolder", value: "sub" },
       { label: "Rename", value: "rename" },
       { label: "Move to…", value: "move" },
       { label: "Delete folder", value: "delete", danger: true },
     ]);
     if (a === "diagram") createNote(f.id);
+    else if (a === "pdf") choosePdf(f.id);
     else if (a === "sub") createFolder(f.id);
     else if (a === "rename") {
       const name = await dialog.prompt("Rename folder", f.name);
@@ -339,8 +403,8 @@ export default function App() {
     } else if (a === "delete") {
       const ids = descendantFolderIds(index!.folders, f.id);
       const doomed = index!.notes.filter((n) => n.folderId && ids.has(n.folderId));
-      if (!(await dialog.confirm(`Delete “${f.name}”?`, `This deletes ${ids.size - 1} subfolder(s) and ${doomed.length} note(s) inside it. This can't be undone.`))) return;
-      doomed.forEach((n) => deleteContent(n.id));
+      if (!(await dialog.confirm(`Delete “${f.name}”?`, `This deletes ${ids.size - 1} subfolder(s) and ${doomed.length} item(s) inside it. This can't be undone.`))) return;
+      doomed.forEach((n) => deleteNote(n.id));
       if (doomed.some((n) => n.id === selectedId)) setSelectedId(null);
       update((i) => ({ folders: i.folders.filter((x) => !ids.has(x.id)), notes: i.notes.filter((n) => !doomed.includes(n)) }));
       setActiveFolder(f.parentId);
@@ -352,7 +416,7 @@ export default function App() {
       { label: "Rename", value: "rename" },
       { label: "Move to…", value: "move" },
       { label: "Duplicate", value: "dup" },
-      { label: "Delete diagram", value: "delete", danger: true },
+      { label: n.kind === "pdf" ? "Delete PDF" : "Delete diagram", value: "delete", danger: true },
     ]);
     if (a === "rename") {
       const title = await dialog.prompt("Rename", n.title);
@@ -364,10 +428,11 @@ export default function App() {
       const c = await loadContent(n.id);
       const copy: NoteMeta = { ...n, id: uid(), title: n.title + " (copy)", createdAt: Date.now(), updatedAt: Date.now() };
       if (c !== undefined) await saveContent(copy.id, c);
+      await copyNoteFiles(n.id, copy.id);
       update((i) => ({ ...i, notes: [...i.notes, copy] }));
     } else if (a === "delete") {
       if (!(await dialog.confirm(`Delete “${n.title}”?`, "This can't be undone."))) return;
-      await deleteContent(n.id);
+      await deleteNote(n.id);
       if (selectedId === n.id) setSelectedId(null);
       update((i) => ({ ...i, notes: i.notes.filter((x) => x.id !== n.id) }));
     }
@@ -381,7 +446,8 @@ export default function App() {
     ]);
     if (a === "theme") setTheme(theme === "dark" ? "light" : "dark");
     else if (a === "export") {
-      const b = await makeBackup(index!);
+      setBusy("Packing backup…");
+      const b = await makeBackup(index!).finally(() => setBusy(null));
       const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
       await shareFile(`sketchnotes-backup-${stamp}.json`, new Blob([JSON.stringify(b)], { type: "application/json" }));
     } else if (a === "import") importRef.current?.click();
@@ -410,6 +476,29 @@ export default function App() {
     await shareFile(`${note.title || "diagram"}.png`, blob);
   };
 
+  const sharePdf = async () => {
+    const api = apiRef.current;
+    if (!api || !note) return;
+    try {
+      const blob = await exportAnnotatedPdf(api.getSceneElements(), api.getFiles(),
+        (done, total) => setBusy(`Exporting page ${Math.min(done + 1, total)} / ${total}…`));
+      setBusy(null);
+      await shareFile(`${note.title || "document"} (annotated).pdf`, blob);
+    } catch (e) {
+      setBusy(null);
+      await dialog.pick(`Export failed: ${(e as Error).message}`, []);
+    }
+  };
+
+  const goToPage = async () => {
+    const api = apiRef.current;
+    if (!api) return;
+    const pages = pagesOf(api.getSceneElements());
+    const v = await dialog.pick("Go to page", pages.map((p: any) => ({ label: `Page ${p.customData.pdfPage}`, value: p.id })));
+    const page = pages.find((p: any) => p.id === v);
+    if (page) api.scrollToContent(page, { fitToViewport: true, viewportZoomFactor: 0.95, animate: true });
+  };
+
   if (!index) return <div className="empty">Loading…</div>;
   const q = filter.trim().toLowerCase();
 
@@ -421,9 +510,10 @@ export default function App() {
             <strong>SketchNotes</strong>
             <button className="icon" onClick={appMenu} aria-label="Menu">⚙︎</button>
           </div>
-          <input className="search" placeholder="Search diagrams…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+          <input className="search" placeholder="Search…" value={filter} onChange={(e) => setFilter(e.target.value)} />
           <div className="new-row">
             <button onClick={() => createNote()}>+ Diagram</button>
+            <button onClick={() => choosePdf()}>+ PDF</button>
             <button onClick={() => createFolder()}>+ Folder</button>
           </div>
           <div className="target">
@@ -441,7 +531,7 @@ export default function App() {
               onFolderMenu={folderMenu} onNote={openNote} onNoteMenu={noteMenu}
             />
             {index.notes.length === 0 && index.folders.length === 0 && (
-              <p className="hint">No diagrams yet. Create a folder like “System Design”, then add a diagram.</p>
+              <p className="hint">Nothing here yet. Create a folder like “System Design”, then add a diagram or import a PDF.</p>
             )}
           </div>
         </aside>
@@ -455,9 +545,16 @@ export default function App() {
             <>
               <input className="title" value={note.title} onChange={(e) => patchNote(note.id, { title: e.target.value })} />
               <span className="crumb">{folderPath(note.folderId)}</span>
-              <button onClick={sharePng}>Share PNG</button>
+              {note.kind === "pdf" ? (
+                <>
+                  <button onClick={goToPage} title="Go to page">Pages{note.pageCount ? ` (${note.pageCount})` : ""}</button>
+                  <button className={readOnly ? "on" : ""} onClick={() => setReadOnly(!readOnly)}
+                    title="Read-only: scroll and zoom without marking the page">{readOnly ? "📖 Reading" : "✏️ Annotating"}</button>
+                  <button onClick={sharePdf}>Share PDF</button>
+                </>
+              ) : <button onClick={sharePng}>Share PNG</button>}
             </>
-          ) : <span className="crumb">Pick or create a diagram</span>}
+          ) : <span className="crumb">Pick a diagram or PDF</span>}
         </header>
         <div className="editor">
           {!note ? (
@@ -466,17 +563,21 @@ export default function App() {
                 <p>Nothing open.</p>
                 <div className="new-row">
                   <button onClick={() => createNote()}>+ Diagram</button>
+                  <button onClick={() => choosePdf()}>+ PDF</button>
                 </div>
               </div>
             </div>
           ) : (
-            <DiagramEditor key={note.id} note={note} theme={theme} onTouch={touch} apiRef={apiRef} />
+            <DiagramEditor key={note.id} note={note} theme={theme} onTouch={touch} apiRef={apiRef} readOnly={readOnly} />
           )}
         </div>
       </main>
 
       <input ref={importRef} type="file" accept="application/json,.json" hidden
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onImport(f); e.target.value = ""; }} />
+      <input ref={pdfRef} type="file" accept="application/pdf,.pdf" hidden
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onPdfChosen(f); e.target.value = ""; }} />
+      {busy && <div className="backdrop"><div className="dialog busy"><div className="spinner" />{busy}</div></div>}
       {dialog.spec && <Dialog spec={dialog.spec} close={dialog.close} />}
     </div>
   );
