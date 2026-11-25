@@ -10,6 +10,13 @@ import { shareFile } from "./share";
 import { inkAvailable } from "./ink";
 import { convertInkToText } from "./diagramInk";
 import { exportAnnotatedPdf, importPdf, pagesOf } from "./pdf";
+import { PromptPicker } from "./practice/PromptPicker";
+import { PracticePanel } from "./practice/PracticePanel";
+import { PracticeHistory } from "./practice/PracticeHistory";
+import { PracticePrompt } from "./practice/prompts";
+import { PracticeState, newSession } from "./practice/session";
+
+const PRACTICE_FOLDER = "Practice";
 
 type Theme = "light" | "dark";
 
@@ -275,7 +282,7 @@ function Tree(props: {
       {notes.map((n) => (
         <div key={n.id} className={"item" + (props.selectedNote === n.id ? " selected" : "")} style={pad}>
           <button className="item-main" onClick={() => props.onNote(n)}>
-            <span className="chev" />{n.kind === "pdf" ? "📄" : "✏️"} {n.title || "Untitled"}
+            <span className="chev" />{n.kind === "pdf" ? "📄" : n.practice ? "🎯" : "✏️"} {n.title || "Untitled"}
           </button>
           <button className="more" onClick={() => props.onNoteMenu(n)} aria-label="Note actions">⋯</button>
         </div>
@@ -301,6 +308,10 @@ export default function App() {
   const pdfFolder = useRef<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [readOnly, setReadOnly] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [history, setHistory] = useState(false);
+  const [practicePanel, setPracticePanel] = useState(() => localStorage.getItem("practice:panel") !== "0");
+  useEffect(() => { localStorage.setItem("practice:panel", practicePanel ? "1" : "0"); }, [practicePanel]);
 
   useEffect(() => { loadIndex().then(setIndex); }, []);
   useEffect(() => { localStorage.setItem("theme", theme); document.documentElement.dataset.theme = theme; }, [theme]);
@@ -339,6 +350,35 @@ export default function App() {
     if (folderId) setExpanded((s) => new Set(s).add(folderId));
     openNote(n);
   };
+
+  /** Practice diagrams go in a top-level "Practice" folder, created on first use. */
+  const startPractice = async (p: PracticePrompt, durationMin: number) => {
+    setPicker(false);
+    let folder = index!.folders.find((f) => f.parentId === null && f.name === PRACTICE_FOLDER);
+    if (!folder) folder = { id: uid(), name: PRACTICE_FOLDER, parentId: null, createdAt: Date.now() };
+    const f = folder;
+    const now = Date.now();
+    const day = new Date(now).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const subject = p.title.replace(/^Design (an? )?/, ""); // "Design a URL shortener" → "URL shortener"
+    const n: NoteMeta = {
+      id: uid(), title: `${subject[0].toUpperCase()}${subject.slice(1)} · ${day}`, folderId: f.id, kind: "diagram",
+      createdAt: now, updatedAt: now, practice: newSession(p.id, durationMin, now),
+    };
+    await saveContent(n.id, { elements: [], appState: {}, files: {} });
+    update((i) => ({ folders: i.folders.some((x) => x.id === f.id) ? i.folders : [...i.folders, f], notes: [...i.notes, n] }));
+    setExpanded((s) => new Set(s).add(f.id));
+    setPracticePanel(true);
+    openNote(n);
+  };
+
+  const setPractice = useCallback((id: string, practice: PracticeState) =>
+    update((i) => ({ ...i, notes: i.notes.map((n) => (n.id === id ? { ...n, practice } : n)) })), [update]);
+
+  const practicedCounts = useMemo(() => {
+    const out: Record<string, number> = {};
+    index?.notes.forEach((n) => { if (n.practice) out[n.practice.promptId] = (out[n.practice.promptId] ?? 0) + 1; });
+    return out;
+  }, [index]);
 
   const choosePdf = (folderId = activeFolder) => { pdfFolder.current = folderId; pdfRef.current?.click(); };
 
@@ -428,7 +468,9 @@ export default function App() {
       if (to !== undefined) { patchNote(n.id, { folderId: to }); if (to) setExpanded((s) => new Set(s).add(to)); }
     } else if (a === "dup") {
       const c = await loadContent(n.id);
-      const copy: NoteMeta = { ...n, id: uid(), title: n.title + " (copy)", createdAt: Date.now(), updatedAt: Date.now() };
+      // A copy is a plain diagram: the practice session (timer, review) stays with the original.
+      const { practice: _session, ...rest } = n;
+      const copy: NoteMeta = { ...rest, id: uid(), title: n.title + " (copy)", createdAt: Date.now(), updatedAt: Date.now() };
       if (c !== undefined) await saveContent(copy.id, c);
       await copyNoteFiles(n.id, copy.id);
       update((i) => ({ ...i, notes: [...i.notes, copy] }));
@@ -443,10 +485,12 @@ export default function App() {
   const appMenu = async () => {
     const a = await dialog.pick("SketchNotes", [
       { label: theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode", value: "theme" },
+      { label: "📊 Practice history", value: "history" },
       { label: "⬆️ Export backup", value: "export" },
       { label: "⬇️ Import backup", value: "import" },
     ]);
     if (a === "theme") setTheme(theme === "dark" ? "light" : "dark");
+    else if (a === "history") setHistory(true);
     else if (a === "export") {
       setBusy("Packing backup…");
       const b = await makeBackup(index!).finally(() => setBusy(null));
@@ -518,6 +562,9 @@ export default function App() {
             <button onClick={() => choosePdf()}>+ PDF</button>
             <button onClick={() => createFolder()}>+ Folder</button>
           </div>
+          <div className="new-row practice-row">
+            <button onClick={() => setPicker(true)}>🎯 Practice interview</button>
+          </div>
           <div className="target">
             Adding to: <b>{activeFolder ? folderPath(activeFolder) : "Top level"}</b>
             {activeFolder && <button className="link" onClick={() => setActiveFolder(null)}>reset</button>}
@@ -558,7 +605,7 @@ export default function App() {
             </>
           ) : <span className="crumb">Pick a diagram or PDF</span>}
         </header>
-        <div className="editor">
+        <div className={"editor" + (note?.practice && practicePanel ? " with-practice" : "")}>
           {!note ? (
             <div className="empty">
               <div>
@@ -566,11 +613,19 @@ export default function App() {
                 <div className="new-row">
                   <button onClick={() => createNote()}>+ Diagram</button>
                   <button onClick={() => choosePdf()}>+ PDF</button>
+                  <button onClick={() => setPicker(true)}>🎯 Practice</button>
                 </div>
               </div>
             </div>
           ) : (
-            <DiagramEditor key={note.id} note={note} theme={theme} onTouch={touch} apiRef={apiRef} readOnly={readOnly} />
+            <>
+              <DiagramEditor key={note.id} note={note} theme={theme} onTouch={touch} apiRef={apiRef} readOnly={readOnly} />
+              {note.practice && (
+                <PracticePanel key={"practice:" + note.id} noteId={note.id} state={note.practice} apiRef={apiRef}
+                  onChange={(s) => setPractice(note.id, s)} collapsed={!practicePanel}
+                  onCollapse={() => setPracticePanel(false)} onExpand={() => setPracticePanel(true)} />
+              )}
+            </>
           )}
         </div>
       </main>
@@ -580,6 +635,11 @@ export default function App() {
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" hidden
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onPdfChosen(f); e.target.value = ""; }} />
       {busy && <div className="backdrop"><div className="dialog busy"><div className="spinner" />{busy}</div></div>}
+      {picker && <PromptPicker practiced={practicedCounts} onStart={startPractice} onClose={() => setPicker(false)} />}
+      {history && (
+        <PracticeHistory notes={index.notes} onClose={() => setHistory(false)}
+          onOpen={(n) => { setHistory(false); setPracticePanel(true); openNote(n); }} />
+      )}
       {dialog.spec && <Dialog spec={dialog.spec} close={dialog.close} />}
     </div>
   );

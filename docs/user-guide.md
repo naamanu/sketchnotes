@@ -208,6 +208,20 @@ Tap **⚙︎** at the top of the sidebar.
 
 > Your diagrams live **only on this tablet** until you export a backup. Uninstalling the app or using *Clear storage* in Android settings deletes them. See [data-and-backups.md](data-and-backups.md).
 
+## Practice interviews
+
+Tap **🎯 Practice interview** in the sidebar to run a timed mock system-design interview.
+
+1. **Pick a prompt.** There are 12 built-in prompts, from a URL shortener to a distributed key-value store. Filter by difficulty, search, or tap **🎲 Surprise me** (it prefers prompts you've done least). Choose a length of 30, 45 or 60 minutes and tap **Start**.
+2. **Design on the canvas.** A new diagram opens in a top-level **Practice** folder (created on first use), with a panel on the right:
+   - **Timer.** The time left overall, and a bar for the six interview phases: requirements, estimates, API and data model, high-level design, deep dive, wrap-up. Each phase has a time budget. Tap **Next** to move on, or tap a segment to jump. Leaving the diagram or switching away from the app pauses the clock.
+   - **Brief.** The requirements, which **＋ Put requirements on the canvas** copies onto the canvas as text. Hints appear one at a time and count towards your review. Deep-dive topics show up once you reach that phase.
+   - **Estimate.** A back-of-envelope calculator seeded with typical numbers for the prompt. Type values like `10M`, `1.5k` or `2KB` to get QPS, storage and bandwidth, then **＋ Put on canvas**.
+   - **Review.** After **End**, see the time spent in each phase, tick a 10-point checklist, rate the session and add notes.
+3. Tap **»** to hide the panel. A small timer stays in the corner; tap it to bring the panel back.
+
+**⚙︎ → 📊 Practice history** lists every session with its rating and checklist score, your total practice time, and the checklist items you miss most often. Sessions are part of the diagram's data, so they're included in backups. **Duplicate** gives a plain copy of the diagram without the session.
+
 ## Tips for system-design interviews
 
 - Import papers you're studying (Dynamo, Bigtable, Raft, Kafka…) as PDFs and annotate them next to your diagrams.

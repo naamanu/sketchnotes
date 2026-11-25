@@ -1,4 +1,5 @@
 import { get, set, del, delMany, getMany, keys, setMany } from "idb-keyval";
+import type { PracticeState } from "./practice/session";
 
 export type Folder = { id: string; name: string; parentId: string | null; createdAt: number };
 /** "text" only exists in data from older versions; it is opened as a diagram. */
@@ -11,6 +12,8 @@ export type NoteMeta = {
   kind: NoteKind;
   createdAt: number;
   updatedAt: number;
+  /** Set on diagrams created as practice interviews. */
+  practice?: PracticeState;
 };
 export type Index = { folders: Folder[]; notes: NoteMeta[] };
 

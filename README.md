@@ -19,6 +19,7 @@ SketchNotes wraps the open-source [`@excalidraw/excalidraw`](https://www.npmjs.c
 - **Folders:** folders can go inside other folders, with search, rename, move, duplicate and delete.
 - **Handwriting → text:** pen writing turns into Excalidraw-font text. Write inside a box and it becomes the box's label. Recognition runs on the device with Google ML Kit.
 - **Pen-friendly:** palm rejection, so the pen draws and fingers pan and zoom.
+- **Practice interviews:** timed mock interviews with 12 built-in prompts, a phase-by-phase timer, an estimate calculator, a self-review checklist and a practice history.
 - **Autosave, backups, offline:** everything is stored on the tablet and saved within about half a second. Export a single JSON backup. No account or server.
 
 ## A quick tour
